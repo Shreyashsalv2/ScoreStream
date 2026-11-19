@@ -1,0 +1,52 @@
+# Defaults for running locally. Every value can be overridden with an environment variable
+# (e.g. DB_URL, JWT_SECRET) — see .env.example and docker-compose.yml.
+spring:
+  application:
+    name: scorestream
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/scorestream?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:scorestream}
+    password: ${DB_PASSWORD:scorestream}
+  jpa:
+    hibernate:
+      # Creates/updates tables from the entities. Fine for a project like this; a production
+      # service would use migrations (Flyway) instead.
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        # Loads lazy collections (e.g. each article's teams) in batches instead of one query each.
+        default_batch_fetch_size: 50
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # Fail fast if Redis is down, so the app falls back to MySQL quickly (see CacheConfig).
+      timeout: 500ms
+      repositories:
+        enabled: false
+    web:
+      pageable:
+        # Nobody can ask for a million rows in one page.
+        max-page-size: 100
+  cache:
+    type: redis
+    redis:
+      # Live scores change often, so cached values expire quickly.
+      time-to-live: ${CACHE_TTL:15s}
+      cache-null-values: false
+
+app:
+  jwt:
+    # Base64-encoded key of at least 32 bytes. ALWAYS set JWT_SECRET outside local development.
+    secret: ${JWT_SECRET:c2NvcmVzdHJlYW0tbG9jYWwtZGV2LXNlY3JldC1rZXktY2hhbmdlLW1lIQ==}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  admin:
+    # Admin account created on first start. Change these outside local development.
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:admin12345}
+  seed-demo-data: ${SEED_DEMO_DATA:true}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

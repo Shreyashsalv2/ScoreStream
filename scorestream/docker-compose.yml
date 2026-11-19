@@ -1,0 +1,44 @@
+# Runs the whole stack: `docker compose up --build`, then open http://localhost:8080/swagger-ui.html
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: scorestream
+      MYSQL_USER: scorestream
+      MYSQL_PASSWORD: scorestream
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uscorestream", "-pscorestream"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/scorestream?allowPublicKeyRetrieval=true
+      DB_USERNAME: scorestream
+      DB_PASSWORD: scorestream
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:-c2NvcmVzdHJlYW0tbG9jYWwtZGV2LXNlY3JldC1rZXktY2hhbmdlLW1lIQ==}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:
